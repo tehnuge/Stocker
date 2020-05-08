@@ -20,7 +20,7 @@ import time
 import random
 
 # Apple stock market
-ticker = "AAPL"
+ticker = "MCD"
 
 # Window size or the sequence length
 N_STEPS = 100
@@ -50,12 +50,6 @@ LOSS = "huber_loss"
 OPTIMIZER = "adam"
 BATCH_SIZE = 64
 EPOCHS = 400
-
-ticker_data_filename = os.path.join("data", f"{ticker}_{date_now}.csv")
-# model name to save, making it as unique as possible based on parameters
-model_name = f"{date_now}_{ticker}-{LOSS}-{OPTIMIZER}-{CELL.__name__}-seq-{N_STEPS}-step-{LOOKUP_STEP}-layers-{N_LAYERS}-units-{UNITS}"
-if BIDIRECTIONAL:
-    model_name += "-b"
     
 
 def create_model(sequence_length, units=256, cell=LSTM, n_layers=2, dropout=0.3,
@@ -86,30 +80,27 @@ def create_model(sequence_length, units=256, cell=LSTM, n_layers=2, dropout=0.3,
     model.compile(loss=loss, metrics=["mean_absolute_error"], optimizer=optimizer)
     return model
 
-# Main program
-def create_folders():
-  if not os.path.isdir("results"):
-      os.mkdir("results")
-  if not os.path.isdir("logs"):
-      os.mkdir("logs")
-  if not os.path.isdir("data"):
-      os.mkdir("data")
       
-def train_model():
+def train_model(ticker, n_steps, lookup_step, test_size, feature_columns, loss, units, cell, n_layers, dropout, optimizer, bidirectional):
   create_folders()
+  ticker_data_filename = os.path.join("data", f"{ticker}_{date_now}.csv")
+  # model name to save, making it as unique as possible based on parameters
+  model_name = f"{date_now}_{ticker}-{loss}-{optimizer}-{cell.__name__}-seq-{n_steps}-step-{lookup_step}-layers-{n_layers}-units-{units}"
+  if bidirectional:
+      model_name += "-b"
   # set seed, so we can get the same results after rerunning several times
   np.random.seed(314)
   tf.random.set_seed(314)
   random.seed(314)
   # load the data
-  data = load_data(ticker, N_STEPS, lookup_step=LOOKUP_STEP, test_size=TEST_SIZE, feature_columns=FEATURE_COLUMNS)
+  data = load_data(ticker, n_steps, lookup_step=lookup_step, test_size=test_size, feature_columns=feature_columns)
 
   # save the dataframe
   data["df"].to_csv(ticker_data_filename)
 
   # construct the model
-  model = create_model(N_STEPS, loss=LOSS, units=UNITS, cell=CELL, n_layers=N_LAYERS,
-                      dropout=DROPOUT, optimizer=OPTIMIZER, bidirectional=BIDIRECTIONAL)
+  model = create_model(n_steps, loss=loss, units=units, cell=cell, n_layers=n_layers,
+                      dropout=dropout, optimizer=optimizer, bidirectional=bidirectional)
 
   # some tensorflow callbacks
   checkpointer = ModelCheckpoint(os.path.join("results", model_name + ".h5"), save_weights_only=True, save_best_only=True, verbose=1)
@@ -124,13 +115,18 @@ def train_model():
 
   model.save(os.path.join("results", model_name) + ".h5")
 
-def test_model():
-  data = load_data(ticker, N_STEPS, lookup_step=LOOKUP_STEP, test_size=TEST_SIZE,
-                feature_columns=FEATURE_COLUMNS, shuffle=False)
+def test_model(ticker, n_steps, lookup_step, test_size, feature_columns, loss, units, cell, n_layers, dropout, optimizer, bidirectional):
+  ticker_data_filename = os.path.join("data", f"{ticker}_{date_now}.csv")
+  # model name to save, making it as unique as possible based on parameters
+  model_name = f"{date_now}_{ticker}-{loss}-{optimizer}-{cell.__name__}-seq-{n_steps}-step-{lookup_step}-layers-{n_layers}-units-{units}"
+  if bidirectional:
+      model_name += "-b"
+  data = load_data(ticker, n_steps, lookup_step=lookup_step, test_size=test_size,
+                feature_columns=feature_columns, shuffle=False)
 
   # construct the model
-  model = create_model(N_STEPS, loss=LOSS, units=UNITS, cell=CELL, n_layers=N_LAYERS,
-                      dropout=DROPOUT, optimizer=OPTIMIZER, bidirectional=BIDIRECTIONAL)
+  model = create_model(n_steps, loss=loss, units=units, cell=cell, n_layers=n_layers,
+                      dropout=dropout, optimizer=optimizer, bidirectional=bidirectional)
 
   model_path = os.path.join("results", model_name) + ".h5"
   model.load_weights(model_path)
@@ -138,16 +134,16 @@ def test_model():
 
   # evaluate the model
   mse, mae = model.evaluate(data["X_test"], data["y_test"], verbose=0)
+  # convert mae to np.float32; changed from py 3.7
   mae = np.array([mae])[0]
-  print(type(mae))
     # calculate the mean absolute error (inverse scaling)
   mean_absolute_error = data["column_scaler"]["adjclose"].inverse_transform(mae.reshape(1, -1))[0][0]
   print("Mean Absolute Error:", mean_absolute_error)
   # predict the future price
-  future_price = predict(model, data)
-  print(f"Future price after {LOOKUP_STEP} days is {future_price:.2f}$")
-  accuracy = get_accuracy(model, data)
-  logData(date_now, ticker, mae, future_price, '0', EPOCHS, LOOKUP_STEP, accuracy)
+  future_price = predict(model, data, n_steps)
+  print(f"Future price after {lookup_step} days is {future_price:.2f}$")
+  accuracy = get_accuracy(model, data, lookup_step)
+  logData(date_now, ticker, mean_absolute_error, future_price, '0', EPOCHS, lookup_step, accuracy)
   # plot_graph(model, data)
 
 
@@ -157,6 +153,6 @@ def test_model():
 # else:
 # 	print('no gpu')
 
-# train_model()
-test_model()
+train_model(ticker, N_STEPS, LOOKUP_STEP, TEST_SIZE, FEATURE_COLUMNS, LOSS, UNITS, CELL, N_LAYERS, DROPOUT, OPTIMIZER, BIDIRECTIONAL)
+test_model(ticker, N_STEPS, LOOKUP_STEP, TEST_SIZE, FEATURE_COLUMNS, LOSS, UNITS, CELL, N_LAYERS, DROPOUT, OPTIMIZER, BIDIRECTIONAL)
 

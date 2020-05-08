@@ -1,14 +1,20 @@
 from sklearn.metrics import accuracy_score
-N_STEPS = 100
-LOOKUP_STEP = 5
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+import os
 
+def create_folders():
+  if not os.path.isdir("results"):
+      os.mkdir("results")
+  if not os.path.isdir("logs"):
+      os.mkdir("logs")
+  if not os.path.isdir("data"):
+      os.mkdir("data")
 
-def predict(model, data, classification=False):
+def predict(model, data, n_steps, classification=False):
   # retrieve the last sequence from data
-  last_sequence = data["last_sequence"][:N_STEPS]
+  last_sequence = data["last_sequence"][:n_steps]
   # retrieve the column scalers
   column_scaler = data["column_scaler"]
   # reshape the last sequence
@@ -35,14 +41,14 @@ def plot_graph(model, data):
     plt.legend(["Actual Price", "Predicted Price"])
     plt.show()
 
-def get_accuracy(model, data):
+def get_accuracy(model, data, lookup_step):
     y_test = data["y_test"]
     X_test = data["X_test"]
     y_pred = model.predict(X_test)
     y_test = np.squeeze(data["column_scaler"]["adjclose"].inverse_transform(np.expand_dims(y_test, axis=0)))
     y_pred = np.squeeze(data["column_scaler"]["adjclose"].inverse_transform(y_pred))
-    y_pred = list(map(lambda current, future: int(float(future) > float(current)), y_test[:-LOOKUP_STEP], y_pred[LOOKUP_STEP:]))
-    y_test = list(map(lambda current, future: int(float(future) > float(current)), y_test[:-LOOKUP_STEP], y_test[LOOKUP_STEP:]))
+    y_pred = list(map(lambda current, future: int(float(future) > float(current)), y_test[:-lookup_step], y_pred[lookup_step:]))
+    y_test = list(map(lambda current, future: int(float(future) > float(current)), y_test[:-lookup_step], y_test[lookup_step:]))
     return accuracy_score(y_test, y_pred)
 
 def logData(date, ticker, mae, predicted, actual, epochs, lookup_step, accuracy):

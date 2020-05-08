@@ -7,7 +7,17 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from yahoo_fin import stock_info as si
 from collections import deque
+import csv
 
+
+# # TODO: from https://rustyonrampage.github.io/deep-learning/2018/10/18/tensorfow-amd.html make GPU work
+# import plaidml.keras
+# plaidml.keras.install_backend()
+
+# import keras
+# from keras import backend as K
+# import os
+# os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -16,7 +26,7 @@ import os
 import random
 
 # Apple stock market
-ticker = "AAPL"
+ticker = "TSLA"
 
 # Window size or the sequence length
 N_STEPS = 100
@@ -153,6 +163,7 @@ def create_folders():
       os.mkdir("data")
       
 def train_model():
+  create_folders()
   # set seed, so we can get the same results after rerunning several times
   np.random.seed(314)
   tf.random.set_seed(314)
@@ -191,14 +202,18 @@ def test_model():
   model_path = os.path.join("results", model_name) + ".h5"
   model.load_weights(model_path)
 
+
   # evaluate the model
   mse, mae = model.evaluate(data["X_test"], data["y_test"], verbose=0)
-  # calculate the mean absolute error (inverse scaling)
+  mae = np.array([mae])[0]
+  print(type(mae))
+    # calculate the mean absolute error (inverse scaling)
   mean_absolute_error = data["column_scaler"]["adjclose"].inverse_transform(mae.reshape(1, -1))[0][0]
   print("Mean Absolute Error:", mean_absolute_error)
   # predict the future price
   future_price = predict(model, data)
   print(f"Future price after {LOOKUP_STEP} days is {future_price:.2f}$")
+  logData(date_now, ticker, mae, future_price, '0', EPOCHS, LOOKUP_STEP)
   # plot_graph(model, data)
 
 def predict(model, data, classification=False):
@@ -240,4 +255,27 @@ def get_accuracy(model, data):
     y_test = list(map(lambda current, future: int(float(future) > float(current)), y_test[:-LOOKUP_STEP], y_test[LOOKUP_STEP:]))
     return accuracy_score(y_test, y_pred)
 
+def logData(date, ticker, mae, predicted, actual, epochs, lookup_step):
+  mydict = [{'date': date, 'ticker': ticker, 'mae': mae, 'predicted': predicted, 'actual': actual, 'epochs': epochs, 'lookup_step': lookup_step} ]
+          # field names  
+  fields = ['date', 'ticker', 'mae', 'predicted', 'actual', 'epochs', 'lookup_step'] 
+  filename = 'data_logs.csv' 
+  # writing to csv file  
+  with open(filename, 'a') as csvfile:  
+      # creating a csv dict writer object  
+      writer = csv.DictWriter(csvfile, fieldnames = fields)  
+          
+      # writing headers (field names)  
+      #writer.writeheader()  
+          
+      # writing data rows  
+      writer.writerows(mydict)  
+
+# if tf.test.gpu_device_name():
+# 	print('gpu is{}'.format(tf.test.gpu_device_name()))
+# else:
+# 	print('no gpu')
+
+# train_model()
 test_model()
+

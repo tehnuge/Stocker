@@ -20,7 +20,7 @@ import time
 import random
 
 # Apple stock market
-ticker = "MCD"
+tickers = ["AAPL"]
 
 # Window size or the sequence length
 N_STEPS = 100
@@ -29,7 +29,7 @@ LOOKUP_STEP = 5
 # test ratio size, 0.2 is 20%
 TEST_SIZE = 0.2
 # features to use
-FEATURE_COLUMNS = ["adjclose", "volume", "open", "high", "low"]
+FEATURE_COLUMNS = ["adjclose", "volume", "open", "high", "low", 'rsi']
 # date now
 date_now = time.strftime("%Y-%m-%d")
 ### model parameters
@@ -143,7 +143,7 @@ def test_model(ticker, n_steps, lookup_step, test_size, feature_columns, loss, u
   future_price = predict(model, data, n_steps)
   print(f"Future price after {lookup_step} days is {future_price:.2f}$")
   accuracy = get_accuracy(model, data, lookup_step)
-  logData(date_now, ticker, mean_absolute_error, future_price, '0', EPOCHS, lookup_step, accuracy)
+  logData(date_now, ticker, mean_absolute_error, future_price, data['actual'], EPOCHS, lookup_step, accuracy)
   # plot_graph(model, data)
 
 
@@ -152,7 +152,7 @@ def test_model(ticker, n_steps, lookup_step, test_size, feature_columns, loss, u
 # 	print('gpu is{}'.format(tf.test.gpu_device_name()))
 # else:
 # 	print('no gpu')
-
-train_model(ticker, N_STEPS, LOOKUP_STEP, TEST_SIZE, FEATURE_COLUMNS, LOSS, UNITS, CELL, N_LAYERS, DROPOUT, OPTIMIZER, BIDIRECTIONAL)
-test_model(ticker, N_STEPS, LOOKUP_STEP, TEST_SIZE, FEATURE_COLUMNS, LOSS, UNITS, CELL, N_LAYERS, DROPOUT, OPTIMIZER, BIDIRECTIONAL)
+for ticker in tickers:
+  # train_model(ticker, N_STEPS, LOOKUP_STEP, TEST_SIZE, FEATURE_COLUMNS, LOSS, UNITS, CELL, N_LAYERS, DROPOUT, OPTIMIZER, BIDIRECTIONAL)
+  test_model(ticker, N_STEPS, LOOKUP_STEP, TEST_SIZE, FEATURE_COLUMNS, LOSS, UNITS, CELL, N_LAYERS, DROPOUT, OPTIMIZER, BIDIRECTIONAL)
 

@@ -5,19 +5,35 @@ import numpy as np
 from collections import deque
 from sklearn.model_selection import train_test_split
 
+def RSI(df):
+    return df[0]
+    
 def load_data(ticker, n_steps=50, scale=True, shuffle=True, lookup_step=1, 
-                test_size=0.2, feature_columns=['adjclose', 'volume', 'open', 'high', 'low']):
+                test_size=0.2, feature_columns=['adjclose', 'volume', 'open', 'high', 'low', 'rsi']):
     # see if ticker is already a loaded stock from yahoo finance
     if isinstance(ticker, str):
         # load it from yahoo_fin library
         df = si.get_data(ticker)
+        # add column
+        df['rsi'] = 0
+        # iterate through table and set RSI cell value
+        for x in range(0, len(df['adjclose'])):
+            df.iat[x, 7] = RSI(df)
+        
     elif isinstance(ticker, pd.DataFrame):
         # already loaded, use it directly
         df = ticker
+    print(df)
+
+    return
     # this will contain all the elements we want to return from this function
     result = {}
     # we will also return the original dataframe itself
     result['df'] = df.copy()
+
+    # return actual stock price
+    result['actual'] = df.tail(1)['adjclose'].array[0].item()
+
     # make sure that the passed feature_columns exist in the dataframe
     for col in feature_columns:
         assert col in df.columns, f"'{col}' does not exist in the dataframe."

@@ -4,35 +4,66 @@ import pandas as pd
 import numpy as np
 from collections import deque
 from sklearn.model_selection import train_test_split
+import math
 
-def RSI(df):
-    return df[0]
+def SMA(x, period, df):
+    if x - period < 0:
+        return
+    avgSum = 0
+    for y in range(0, period):
+        # column 3 is closing price
+        avgSum = avgSum + df.iat[x - y, 3]
+    
+    avg = avgSum /period
+    return avg
+
+def SD(x, period, df, avg):
+    if x - period < 0:
+        return
+    sum = 0
+    for y in range(0, period):
+        sum = sum + (df.iat[x - y, 3] - avg)**2
+    sd = math.sqrt(sum / period)
+    return sd    
     
 def load_data(ticker, n_steps=50, scale=True, shuffle=True, lookup_step=1, 
-                test_size=0.2, feature_columns=['adjclose', 'volume', 'open', 'high', 'low', 'rsi']):
+                test_size=0.2, feature_columns=['adjclose', 'volume', 'open', 'high', 'low', "sma50", "sma200"]):
     # see if ticker is already a loaded stock from yahoo finance
     if isinstance(ticker, str):
         # load it from yahoo_fin library
         df = si.get_data(ticker)
-        # add column
-        df['rsi'] = 0
-        # iterate through table and set RSI cell value
-        for x in range(0, len(df['adjclose'])):
-            df.iat[x, 7] = RSI(df)
-        
+        # add columns (starting at 7)
+        df['sma50'] = 0
+        df['sma200'] = 0
+        df['+bol20'] = 0
+        df['-bol20'] = 0
+
+        # iterate through table and set SMA cell value
+        for x in range(0, len(df['close'])):
+            df.iat[x, 7] = SMA(x, 50, df)
+            df.iat[x, 8] = SMA(x, 200, df)
+            # Bollinger's band calculations
+            sma20 = SMA(x, 20, df)
+            sd = SD(x, 20, df, sma20)
+            if sd is not None and sma20 is not None:
+                df.iat[x, 9] = sma20 + 2 * sd
+                df.iat[x, 10] = sma20 - 2 * sd
+            
+        # drop NaN
+        df.dropna(inplace=True)
+        print(df)
+
     elif isinstance(ticker, pd.DataFrame):
         # already loaded, use it directly
         df = ticker
-    print(df)
 
-    return
     # this will contain all the elements we want to return from this function
     result = {}
     # we will also return the original dataframe itself
     result['df'] = df.copy()
 
     # return actual stock price
-    result['actual'] = df.tail(1)['adjclose'].array[0].item()
+    result['actual'] = df.tail(1)['close'].array[0].item()
 
     # make sure that the passed feature_columns exist in the dataframe
     for col in feature_columns:
@@ -54,6 +85,7 @@ def load_data(ticker, n_steps=50, scale=True, shuffle=True, lookup_step=1,
     last_sequence = np.array(df[feature_columns].tail(lookup_step))
     # drop NaNs
     df.dropna(inplace=True)
+
     sequence_data = []
     sequences = deque(maxlen=n_steps)
     for entry, target in zip(df[feature_columns].values, df['future'].values):

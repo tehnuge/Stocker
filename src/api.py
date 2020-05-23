@@ -20,16 +20,17 @@ import time
 import random
 
 # Apple stock market
-tickers = ["AAPL"]
+tickers = ["GOOG", "NFLX", "AAPL", "AMZN", "GM", "COST", "INCAF", "FNV", "CEF"]
+# tickers = ["INCAF", "FNV", "CEF"]
 
 # Window size or the sequence length
 N_STEPS = 100
 # Lookup step, 1 is the next day
-LOOKUP_STEP = 5
+LOOKUP_STEP = 1
 # test ratio size, 0.2 is 20%
 TEST_SIZE = 0.2
 # features to use
-FEATURE_COLUMNS = ["adjclose", "volume", "open", "high", "low", 'rsi']
+FEATURE_COLUMNS = ["adjclose", "volume", "open", "high", "low", "sma50", "sma200", "+bol20","-bol20"]
 # date now
 date_now = time.strftime("%Y-%m-%d")
 ### model parameters
@@ -153,6 +154,6 @@ def test_model(ticker, n_steps, lookup_step, test_size, feature_columns, loss, u
 # else:
 # 	print('no gpu')
 for ticker in tickers:
-  # train_model(ticker, N_STEPS, LOOKUP_STEP, TEST_SIZE, FEATURE_COLUMNS, LOSS, UNITS, CELL, N_LAYERS, DROPOUT, OPTIMIZER, BIDIRECTIONAL)
+  train_model(ticker, N_STEPS, LOOKUP_STEP, TEST_SIZE, FEATURE_COLUMNS, LOSS, UNITS, CELL, N_LAYERS, DROPOUT, OPTIMIZER, BIDIRECTIONAL)
   test_model(ticker, N_STEPS, LOOKUP_STEP, TEST_SIZE, FEATURE_COLUMNS, LOSS, UNITS, CELL, N_LAYERS, DROPOUT, OPTIMIZER, BIDIRECTIONAL)
 

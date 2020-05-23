@@ -65,6 +65,9 @@ def load_data(ticker, n_steps=50, scale=True, shuffle=True, lookup_step=1,
     # return actual stock price
     result['actual'] = df.tail(1)['close'].array[0].item()
 
+    # return technical indicators used
+    result['indicators'] = feature_columns[5:]
+
     # make sure that the passed feature_columns exist in the dataframe
     for col in feature_columns:
         assert col in df.columns, f"'{col}' does not exist in the dataframe."
